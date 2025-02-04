@@ -1,3 +1,3 @@
 function greeting() {
-    console.log("Привет, мир!");
+    console.log("Привет, Aston!");
 }
