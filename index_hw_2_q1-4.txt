@@ -1,0 +1,191 @@
+    1. Метод запроса OPTIONS
+
+Согласно стандарту HTTP/1.1 метод OPTIONS может быть использован клиентом для определения параметров или требований, 
+связанных с ресурсом. Сервер также может отправлять документацию в удобочитаемом формате. 
+Ответ на запрос OPTIONS может содержать список допустимых методов для данного ресурса в хедере Allow.
+
+Зачем использовать метод OPTIONS?
+
+При тестировании API это отличный способ выяснить, существуют ли валидные конечные точки, 
+о которых вы ничего не знаете. Так можно узнать о дополнительных функциях для тестирования, 
+а также о потенциальных дырах безопасности. К примеру, возможно, у вашего API не должно быть метода DELETE, 
+но кто-то внедрил его по ошибке.
+
+При запросе без CORS ничего кроме самого метода передавать не нужно:
+Пример
+curl -X OPTIONS http://example.org -i
+
+Ответ на запрос содержит Allow заголовок с поддерживаемыми методами:
+
+HTTP/1.1 200 OK
+Allow: OPTIONS, GET, HEAD, POST
+Cache-Control: max-age=604800
+Date: Thu, 13 Oct 2016 11:45:00 GMT
+Expires: Thu, 20 Oct 2016 11:45:00 GMT
+Server: EOS (lax004/2813)
+x-ec-custom-error: 1
+Content-Length: 0
+
+В случае CORS браузер будет самостоятельно посылать запрос OPTIONS на запрашиваемый адрес
+Preflight Request
+
+Заголовки в таком случае:
+
+Access-Control-Request-Method (заголовок уведомляет сервер в составе предварительного запроса о том что, 
+запрос OPTIONS будет отправляться на сервер вместе с POST запросом);
+
+Access-Control-Request-Headers (заголовок уведомляет сервер о том, что при отправке фактического запроса, 
+он будет отправлен с помощью пользовательских заголовков X-PINGOTHER и Content-Type. 
+В этом случае сервер имеет возможность определять возможно ли принять запрос с такими параметрами);
+
+Ответ сервера содержит параметр Access-Control-Allow-Methods (сообщает какие методы являются приемлемыми для данного ресурса)
+
+Только после получения положительного ответа от сервера на preflight запрос, ваш браузер отправит основной запрос.
+
+Этот механизм предназначен для обеспечения безопасности. 
+Он предотвращает отправку вредоносных запросов от сайтов, которым не доверяет сервер. 
+Таким образом, если сервер notesapi.com не разрешает запросы с myapp.com, 
+ваш браузер не отправит чувствительные данные, защищая таким образом информацию пользователя.
+
+    2.  Ключевые особенности HTTP/3
+
+HTTP/3 поставляется со встроенным шифрованием TLS 1.3 для обеспечения безопасности.
+QPACK сжимает запросы и заголовки вместо HPACK
+Обеспечивает быстрые и надежные соединения с одним квитированием через QUIC
+Все заголовки кадров и полезная нагрузка (данные) находятся под контролем потока для более плавной передачи данных.
+
+https://pcio.ru/chto-takoe-http-3-chem-on-otlichaetsya-ot-http-2-2681.html
+
+    3. AbortController
+    
+В веб-разработке управление асинхронными задачами имеет решающее значение для создания отзывчивых и эффективных приложений. 
+Асинхронные операции, такие как получение данных с сервера или выполнение трудоёмких вычислений, 
+часто требуют возможности отменить или прервать их до завершения. Здесь на помощь приходит AbortController, 
+
+Отмена сетевых запросов:
+
+// Пример с fetch
+
+const controller = new AbortController();
+const signal = controller.signal;
+
+fetch('https://api.example.com/slow-request', { signal })
+    .then(response => response.json())
+    .then(data => console.log(data))
+    .catch(error => {
+        if (error.name === 'AbortError') {
+            console.log('Запрос отменен');
+        }
+    });
+
+// Отмена через 2 секунды
+
+setTimeout(() => {
+    controller.abort();
+}, 2000);
+
+Отмена таймеров:
+
+const controller = new AbortController();
+const signal = controller.signal;
+const timeoutId = setTimeout(() => {
+    console.log('Таймер сработал');
+}, 5000);
+
+signal.addEventListener('abort', () => {
+    clearTimeout(timeoutId);
+});
+
+// Отмена через 3 секунды
+setTimeout(() => {
+    controller.abort();
+}, 3000);
+
+События дебаунсинга
+
+Дебаунсинг — техника, позволяющая ограничить скорость вызова функции, 
+обычно в ответ на события пользовательского ввода, такие как ввод текста или изменение размера. 
+При реализации дебаунсинга часто требуется отменить все ожидающие вызовы функции, 
+если событие произойдёт снова до того, как функция будет полностью выполнена.
+AbortController предоставляет удобный способ добиться такого поведения. 
+Можно связать каждый слушатель события с AbortController и отменять предыдущий вызов при повторном возникновении события, 
+гарантируя, что будет выполнен только последний вызов.
+
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Debouncing Example with AbortController</title>
+  </head>
+  <body>
+    <form>
+      <input id="inputField" placeholder="Type something..." />
+    </form>
+    <script>
+      const formInput = document.getElementById("inputField");
+      let abortController = null;
+
+      // Функция для выполнения операции дебаунсинга
+      const debounceOperation = () => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+        // Выполнение асинхронную операцию, например получение данных
+        fetch("https://api.example.com/data", { signal })
+          .then((response) => response.json())
+          .then((data) => {
+            // Обработка данных
+            console.log("Debounced operation completed:", data);
+          })
+          .catch((error) => {
+            if (error.name === "AbortError") {
+              console.log("Debounced operation was aborted");
+            } else {
+              console.error(
+                "Error occurred during debounced operation:",
+                error
+              );
+            }
+          });
+      };
+
+      // функция для дебаунсинга событий пользовательского ввода
+      const debounceEvent = () => {
+        // Если операция дебаунсинга продолжается, прерываем её.
+        if (abortController) {
+          abortController.abort();
+        }
+
+        // Создание AbortController для текущей операции
+        abortController = new AbortController();
+        const signal = abortController.signal;
+
+        // Запуск нового таймаута для операции дебаунсинга
+        setTimeout(() => {
+          debounceOperation();
+          abortController = null; // Сброс AbortController; в данной реализации не требуется, так как функция дебаунсинга привязана к событию key-up
+        }, 500); // При необходимости отрегулируйте задержку дебаунсинга
+      };
+
+      // Пример: Дебаунсинг события key-up
+      formInput.addEventListener("keyup", debounceEvent);
+    </script>
+  </body>
+</html>
+
+https://www.dev-notes.ru/articles/javascript/abort-controllers-in-javascript/#demo_on_using_the_abort_controller
+
+4. Temporal Dead Zone
+
+Промежуток времени между входом в область видимости сущности и исполнением инструкции с 
+её объявлением называется Temporal Dead Zone (TDZ). Если в это время обратиться к объявляемым переменной/классу/функции,
+то возникнет исключение. Именно поэтому первый вызов функции из примера ниже выкинет исключение, а второй выполнится без ошибок:
+
+function a() {
+  return b;
+}
+
+a(); // throws ReferenceError
+const b = 1;
+a(); // 1
