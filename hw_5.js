@@ -120,7 +120,7 @@ console.log(b.getPrivate);
 let arr = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 let total = 56;
 
-function getPairNumbersToSumTotal(arr) {
+function getPairNumbersToSumTotal(arr, total) {
     while (arr.length > 2) {
         for (let i = arr.length-2; i >= 0; i--) {
             if (arr[arr.length-1] + arr[i] === total) {
@@ -132,4 +132,25 @@ function getPairNumbersToSumTotal(arr) {
     return `Чисел, сумма которых равна ${total}, не найдено`;
 }
 
-console.log(getPairNumbersToSumTotal(arr));
+const res = getPairNumbersToSumTotal(arr, 17);
+console.log("res", res);
+
+function getPairNumbersToSumTotal2(arr, total) {
+    let i = 0;
+    let y = arr.length - 1;
+    while (i < y) {
+        console.log(i, y);
+        const sum = arr[i] + arr[y];
+        if (sum === total) {
+            return [arr[i], arr[y]];
+        } else if (sum < total) {
+            i++;
+        } else {
+            y--;
+        }
+    }
+    return `Чисел, сумма которых равна ${total}, не найдено`;
+}
+
+const res2 = getPairNumbersToSumTotal2(arr, 17);
+console.log("res2", res2);
