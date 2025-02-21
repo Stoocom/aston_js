@@ -92,7 +92,7 @@ function getData(url, attempts, maxRequests, resolve, reject) {
         });
 };
 
-function sendRequests(url, maxRequests) {
+function fetchUrl(url, maxRequests) {
     let attempts = 0;
     return new Promise((resolve, reject) => {
         getData(url, attempts, maxRequests, resolve, reject);
@@ -101,7 +101,7 @@ function sendRequests(url, maxRequests) {
 
 let url = 'https://google/com&#39';
 
-sendRequests(url, 5)
+fetchUrl(url, 5)
     .then((res) => {
         console.log(res);  
     })
