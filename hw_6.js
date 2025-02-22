@@ -77,6 +77,7 @@ console.log(a); // 5 очередь микротаск шаг 2
 
     // 5. ------------------------------------------------------
 
+// 1 вариант с fetch
 function getData(url, attempts, maxRequests, resolve, reject) {
     fetch(url)
         .then(resp => resp.json())
@@ -108,3 +109,47 @@ fetchUrl(url, 5)
     .catch((e) => {
         console.log(e);
     })
+
+// 2 вариант с fetch и генератором
+function getDataForGenerator(url) {
+    return fetch(url)
+};
+
+function* main(attempts) {  
+    for (let i = 1; i <= attempts; i++) {
+        yield getDataForGenerator(url);
+    }
+    return `Ошибка получения данных после ${attempts} запросов`
+  }
+  
+function fetchUrl2(fn, ...args) {
+    const it = fn(...args);
+  
+    return new Promise((resolve, reject) => {
+        step();
+
+        function step() {
+            const result = it.next();
+
+            if (result.done) {
+                reject(result.value);
+                return;
+            }
+    
+            result.value.then(res => {
+                resolve(result.value);
+            }).catch(e => {
+                step();
+            });
+        }
+    })
+}
+
+fetchUrl2(main, 5)
+    .then(resp => resp.json())
+    .then(result => {
+        console.log(result);
+    })
+    .catch(e => {
+        console.log(e);
+    });
